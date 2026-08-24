@@ -6,11 +6,11 @@ python -m pip install -e '.[test]'
 python scripts/generate_appointment_card.py demo-20260818
 ```
 
-The script pushes a deliberately non-identifying illustration prompt through Infrai's OpenAI-compatible `base_url`, writes the returned PNG under `generated/appointments/`, and prints the operational notification a web app can consume. One `INFRAI_API_KEY` keeps the image call behind the same credential as the other Infrai capabilities a Next.js or Python backend may later add, so you are not managing a second secret for a separate image vendor.
+The script pushes a deliberately non-identifying illustration prompt through Infrai's OpenAI-compatible `base_url`, writes the returned PNG to `generated/appointments/`, and prints the operational notification a web app can consume. One `INFRAI_API_KEY` keeps that image call behind the same credential as every other Infrai capability a Next.js or Python backend might add later, which is the kind of thing we care about when planning on-call load: one key and one bill for every capability, reachable from any language with a plain REST call and no SDK.
 
 ## The request your route accepts
 
-Bring the service up with:
+Boot the application with:
 
 ```bash
 uvicorn healthtech_media_service.service:service --reload
@@ -40,11 +40,11 @@ The response names the stored file and returns this notification:
 }
 ```
 
-The patient fields live at the typed service boundary, where a Next.js form would already hold them. The workflow never copies either field into the image prompt or the notification. It uses only the appointment reference and operational status, and the secure portal stays the system of record for personal and clinical details.
+The patient fields live at the typed service boundary, where a Next.js form already has them. The workflow never copies either field into the image prompt or the notification. It touches only the appointment reference and operational status; the secure portal stays the system of record for personal and clinical details.
 
 ## The one real gotcha
 
-Image generation is a write operation. The route therefore requires a stable `request_id`, forwards it as the idempotency key, and stores the PNG at a path derived from that same value. Replaying a form submission returns the existing artifact instead of minting a second one. In a deployed service, mount `generated/appointments/` on the durable volume your runtime gives you, or you will lose artifacts on container restart and page the on-call for a consistency bug.
+Image generation is a write operation. The route therefore requires a stable `request_id`, forwards it as the idempotency key, and stores the PNG at a path derived from that same value. Replaying a form submission returns the existing artifact instead of minting a second one, which matters for our SLO on duplicate writes. In a deployed service, mount `generated/appointments/` on the durable volume your runtime gives you.
 
 ## Check the patient-safety decision
 
